@@ -14,7 +14,7 @@
 
 #define LED_PIN 5
 
-static const char *TAG = "espressif"; // TAG for debug
+static const char *TAG = "SPIFFS"; // TAG for debug
 int led_state = 0;
 
 #define INDEX_HTML_PATH "/spiffs/index.html"
@@ -31,8 +31,17 @@ static void initi_web_page_buffer(void)
 
     ESP_ERROR_CHECK(esp_vfs_spiffs_register(&conf));
 
+    size_t total = 0, used = 0;
+    if(esp_spiffs_info(conf.partition_label, &total, &used) == ESP_OK){
+        ESP_LOGI(TAG,"Partition size: total %d, used: %d", total, used);
+    }else{
+        ESP_LOGE(TAG,"Couldnt read partition info");
+    }
+
     memset((void *)index_html, 0, sizeof(index_html));
     struct stat st;
+
+    /**/
     if (stat(INDEX_HTML_PATH, &st))
     {
         ESP_LOGE(TAG, "index.html not found");
@@ -51,12 +60,12 @@ esp_err_t send_web_page(httpd_req_t *req)
 {
     int response;
     if (led_state)
-    {
-        sprintf(response_data, index_html, "ON");
+    {   
+        sprintf(response_data, index_html, "On");
     }
     else
     {
-        sprintf(response_data, index_html, "OFF");
+        sprintf(response_data, index_html, "Off");
     }
     response = httpd_resp_send(req, response_data, HTTPD_RESP_USE_STRLEN);
     return response;
@@ -68,14 +77,14 @@ esp_err_t get_req_handler(httpd_req_t *req)
 
 esp_err_t led_on_handler(httpd_req_t *req)
 {
-    gpio_set_level(LED_PIN, 1);
+    gpio_set_level(LED_PIN, 0);
     led_state = 1;
     return send_web_page(req);
 }
 
 esp_err_t led_off_handler(httpd_req_t *req)
 {
-    gpio_set_level(LED_PIN, 0);
+    gpio_set_level(LED_PIN, 1);
     led_state = 0;
     return send_web_page(req);
 }
