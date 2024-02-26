@@ -11,11 +11,13 @@
 #include "esp_spiffs.h"
 
 #include "wifi.h"
+#include "mqtt_connect.h"
 
 #define LED_PIN 5
 
 static const char *TAG = "SPIFFS"; // TAG for debug
 int led_state = 0;
+esp_mqtt_client_handle_t client;
 
 #define INDEX_HTML_PATH "/spiffs/index.html"
 char index_html[4096];
@@ -32,10 +34,13 @@ static void initi_web_page_buffer(void)
     ESP_ERROR_CHECK(esp_vfs_spiffs_register(&conf));
 
     size_t total = 0, used = 0;
-    if(esp_spiffs_info(conf.partition_label, &total, &used) == ESP_OK){
-        ESP_LOGI(TAG,"Partition size: total %d, used: %d", total, used);
-    }else{
-        ESP_LOGE(TAG,"Couldnt read partition info");
+    if (esp_spiffs_info(conf.partition_label, &total, &used) == ESP_OK)
+    {
+        ESP_LOGI(TAG, "Partition size: total %d, used: %d", total, used);
+    }
+    else
+    {
+        ESP_LOGE(TAG, "Couldnt read partition info");
     }
 
     memset((void *)index_html, 0, sizeof(index_html));
@@ -60,7 +65,7 @@ esp_err_t send_web_page(httpd_req_t *req)
 {
     int response;
     if (led_state)
-    {   
+    {
         sprintf(response_data, index_html, "On");
     }
     else
@@ -139,15 +144,17 @@ void app_main()
 
     init_wifi();
 
-    while(!wifi_established)
+    while (!wifi_established)
     {
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 
+    client = mqttclient();
+
     gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
 
-        led_state = 0;
-        ESP_LOGI(TAG, "LED Control SPIFFS Web Server is running ... ...\n");
-        initi_web_page_buffer();
-        setup_server();
+    led_state = 0;
+    ESP_LOGI(TAG, "LED Control SPIFFS Web Server is running ... ...\n");
+    initi_web_page_buffer();
+    setup_server();
 }

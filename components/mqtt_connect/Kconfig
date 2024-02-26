@@ -1,0 +1,5 @@
+menu "Mqtt Configurations"
+    config EXAMPLE_MQTT_Broker
+        string "URI of Broker"
+        default "mqtt://193.174.24.220:1883"
+endmenu
