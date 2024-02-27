@@ -1589,6 +1589,13 @@ CONFIG_WIFI_PROV_STA_ALL_CHANNEL_SCAN=y
 # end of Wi-Fi Provisioning Manager
 
 #
+# Mqtt Configurations
+#
+CONFIG_EXAMPLE_MQTT_Broker="mqtt://193.174.24.220:1883"
+CONFIG_EXAMPLE_MQTT_TOPIC="monitoring-system/sound_sensor"
+# end of Mqtt Configurations
+
+#
 # Wifi Configurations
 #
 CONFIG_EXAMPLE_WIFI_SSID="Mi Phone"

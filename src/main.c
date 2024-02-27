@@ -11,7 +11,7 @@
 #include "esp_spiffs.h"
 
 #include "wifi.h"
-#include "mqtt_connect.h"
+#include "mqtt_subscribe.h"
 
 #define LED_PIN 5
 
@@ -94,6 +94,22 @@ esp_err_t led_off_handler(httpd_req_t *req)
     return send_web_page(req);
 }
 
+esp_err_t get_data_handler(httpd_req_t *req)
+{
+    sensor_values recieve_data = get_sensor_data();
+
+    // Prepare JSON response
+    char buffer[100];
+    snprintf(buffer, sizeof(buffer), "{\"sound_sensor\": %.s, \"motion_sensor\": %.s", recieve_data.sound_sensor, recieve_data.motion_sensor);
+
+    // Set response type as JSON
+    httpd_resp_set_type(req, "application/json");
+    // Send JSON response
+    httpd_resp_send(req, buffer, strlen(buffer));
+
+    return ESP_OK;
+}
+
 httpd_uri_t uri_get = {
     .uri = "/",
     .method = HTTP_GET,
@@ -112,6 +128,12 @@ httpd_uri_t uri_off = {
     .handler = led_off_handler,
     .user_ctx = NULL};
 
+httpd_uri_t sensor_data = {
+    .uri = "/sensordata",
+    .method = HTTP_GET,
+    .handler = get_data_handler,
+    .user_ctx = NULL};
+
 httpd_handle_t setup_server(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -122,6 +144,7 @@ httpd_handle_t setup_server(void)
         httpd_register_uri_handler(server, &uri_get);
         httpd_register_uri_handler(server, &uri_on);
         httpd_register_uri_handler(server, &uri_off);
+        httpd_register_uri_handler(server, &sensor_data);
     }
 
     return server;

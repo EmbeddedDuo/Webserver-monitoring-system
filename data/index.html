@@ -60,6 +60,20 @@
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css"
         integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            function fetchSensorData() {
+                $.get("/sensordata", function (data) {
+                    var sensorData = JSON.parse(data);
+                    $("#soundSensor").text(sensorData.sound_sensor);
+                    $("#motionSensor").text(sensorData.motion_sensor);
+                });
+            }
+            fetchSensorData();
+            setInterval(fetchSensorData); // Aktualisieren Sie die Daten alle 5 Sekunden
+        });
+    </script>
 </head>
 
 <body>
@@ -73,6 +87,8 @@
                     <a href="/led2on"><button class="button">ON</button></a>
                     <a href="/led2off"><button class="button button2">OFF</button></a>
                 </p>
+                <p>Current Sound Value: <span id="soundSensor"></span></p>
+                <p>Current Motion Value: <span id="motionSensor"></span></p>
             </div>
         </div>
     </div>
