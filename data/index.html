@@ -60,18 +60,26 @@
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css"
         integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script>
-        $(document).ready(function () {
+        document.addEventListener("DOMContentLoaded", function() {
             function fetchSensorData() {
-                $.get("/sensordata", function (data) {
-                    var sensorData = JSON.parse(data);
-                    $("#soundSensor").text(sensorData.sound_sensor);
-                    $("#motionSensor").text(sensorData.motion_sensor);
+                fetch("/sensordata")
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Network response was not ok");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById("soundSensor").textContent = data.sound_sensor;
+                    document.getElementById("motionSensor").textContent = data.motion_sensor;
+                })
+                .catch(error => {
+                    console.error("Error fetching sensor data:", error);
                 });
             }
             fetchSensorData();
-            setInterval(fetchSensorData); // Aktualisieren Sie die Daten alle 5 Sekunden
+            setInterval(fetchSensorData, 2000); // Aktualisieren Sie die Daten alle 2 Sekunden
         });
     </script>
 </head>

@@ -16,7 +16,7 @@
 #define LED_PIN 5
 
 static const char *TAG = "SPIFFS"; // TAG for debug
-int led_state = 0;
+int led_state = 1;
 esp_mqtt_client_handle_t client;
 
 #define INDEX_HTML_PATH "/spiffs/index.html"
@@ -100,8 +100,8 @@ esp_err_t get_data_handler(httpd_req_t *req)
 
     // Prepare JSON response
     char buffer[100];
-    snprintf(buffer, sizeof(buffer), "{\"sound_sensor\": %.s, \"motion_sensor\": %.s", recieve_data.sound_sensor, recieve_data.motion_sensor);
-
+    snprintf(buffer, sizeof(buffer), "{\"sound_sensor\": %s, \"motion_sensor\": %s}", recieve_data.sound_sensor, recieve_data.motion_sensor);
+    
     // Set response type as JSON
     httpd_resp_set_type(req, "application/json");
     // Send JSON response
@@ -176,7 +176,6 @@ void app_main()
 
     gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
 
-    led_state = 0;
     ESP_LOGI(TAG, "LED Control SPIFFS Web Server is running ... ...\n");
     initi_web_page_buffer();
     setup_server();
