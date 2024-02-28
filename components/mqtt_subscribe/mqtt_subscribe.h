@@ -7,11 +7,10 @@
 
 /**
  * @brief struct for saving the sensor values
- * 
  */
 typedef struct sensor_values_t{
-    char sound_sensor[8];
-    char motion_sensor[8];
+    char sound_sensor[8]; //stores sound_sensor value
+    char motion_sensor[8]; //stores motion sensor value
 }sensor_values;
 
 /**
