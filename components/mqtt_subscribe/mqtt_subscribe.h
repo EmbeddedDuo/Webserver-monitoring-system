@@ -5,6 +5,10 @@
 #include <esp_log.h>
 #include <mqtt_client.h>
 
+/**
+ * @brief struct for saving the sensor values
+ * 
+ */
 typedef struct sensor_values_t{
     char sound_sensor[8];
     char motion_sensor[8];
