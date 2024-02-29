@@ -2,7 +2,6 @@
 #include "esp_log.h"
 #include <wifi.h>
 
-
 #define ESP_WIFI_SSID CONFIG_EXAMPLE_WIFI_SSID
 #define ESP_WIFI_PASS CONFIG_EXAMPLE_WIFI_PASSWORD
 
@@ -56,4 +55,8 @@ void init_wifi()
     esp_netif_create_default_wifi_sta();                                 // Standard-WiFi-Station erstellen
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config)); // WLAN-Konfiguration setzen
     ESP_ERROR_CHECK(esp_wifi_start());                                   // WLAN starten
+}
+
+bool check_wifi_established(){
+    return wifi_established;
 }
