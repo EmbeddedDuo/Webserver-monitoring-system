@@ -12,11 +12,12 @@
 
 #include "wifi.h"
 #include "mqtt_subscribe.h"
+#include "whatsapp_messaging_http.h"
 
 #define LED_PIN 5
 
 static const char *TAG = "SPIFFS"; // TAG for debug
-int led_state = 1;
+int led_state = 0;
 esp_mqtt_client_handle_t client;
 
 #define INDEX_HTML_PATH "/spiffs/index.html"
@@ -179,4 +180,5 @@ void app_main()
     ESP_LOGI(TAG, "LED Control SPIFFS Web Server is running ... ...\n");
     initi_web_page_buffer();
     setup_server();
+    send_whatsapp_message();
 }
