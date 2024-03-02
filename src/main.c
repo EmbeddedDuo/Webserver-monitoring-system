@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h> //Requires by memset
+#include <string.h>
+#include <stdbool.h>
 #include "freertos/FreeRTOS.h"
 #include "driver/gpio.h"
 #include "freertos/task.h"
@@ -9,20 +10,28 @@
 #include <esp_log.h>
 #include <esp_http_server.h>
 #include "esp_spiffs.h"
+#include <freertos/timers.h>
 
 #include "wifi.h"
 #include "mqtt_subscribe.h"
 #include "whatsapp_messaging_http.h"
 
-#define LED_PIN 5
+#define INDEX_HTML_PATH "/spiffs/index.html"
 
-static const char *TAG = "SPIFFS"; // TAG for debug
-int led_state = 0;
+static const char *TAG = "SPIFFS";
+TimerHandle_t whatsapp_messages_timer = NULL;
+static const TickType_t delay_between_messages = CONFIG_MESSAGE_DELAY;
+
 esp_mqtt_client_handle_t client;
 
-#define INDEX_HTML_PATH "/spiffs/index.html"
+bool allowed_to_send_whatsapp_messages = true;
+
 char index_html[4096];
-char response_data[4096];
+
+void whatsapp_messaging(TimerHandle_t pxTimer)
+{
+    allowed_to_send_whatsapp_messages = true;
+}
 
 static void initi_web_page_buffer(void)
 {
@@ -47,7 +56,6 @@ static void initi_web_page_buffer(void)
     memset((void *)index_html, 0, sizeof(index_html));
     struct stat st;
 
-    /**/
     if (stat(INDEX_HTML_PATH, &st))
     {
         ESP_LOGE(TAG, "index.html not found");
@@ -64,35 +72,8 @@ static void initi_web_page_buffer(void)
 
 esp_err_t send_web_page(httpd_req_t *req)
 {
-    int response;
-    if (led_state)
-    {
-        sprintf(response_data, index_html, "On");
-    }
-    else
-    {
-        sprintf(response_data, index_html, "Off");
-    }
-    response = httpd_resp_send(req, response_data, HTTPD_RESP_USE_STRLEN);
+    esp_err_t response = httpd_resp_send(req, index_html, HTTPD_RESP_USE_STRLEN);
     return response;
-}
-esp_err_t get_req_handler(httpd_req_t *req)
-{
-    return send_web_page(req);
-}
-
-esp_err_t led_on_handler(httpd_req_t *req)
-{
-    gpio_set_level(LED_PIN, 0);
-    led_state = 1;
-    return send_web_page(req);
-}
-
-esp_err_t led_off_handler(httpd_req_t *req)
-{
-    gpio_set_level(LED_PIN, 1);
-    led_state = 0;
-    return send_web_page(req);
 }
 
 esp_err_t get_data_handler(httpd_req_t *req)
@@ -102,7 +83,15 @@ esp_err_t get_data_handler(httpd_req_t *req)
     // Prepare JSON response
     char buffer[100];
     snprintf(buffer, sizeof(buffer), "{\"sound_sensor\": %s, \"motion_sensor\": %s}", recieve_data.sound_sensor, recieve_data.motion_sensor);
+    ESP_LOGI("MQTT", "Daten sollen gesendet werden: %s", recieve_data.should_message_user ? "true" : "false");
     
+    if (allowed_to_send_whatsapp_messages && recieve_data.should_message_user)
+    {
+        send_whatsapp_message();
+        xTimerStart(whatsapp_messages_timer, 0);
+        allowed_to_send_whatsapp_messages = false;
+    }
+
     // Set response type as JSON
     httpd_resp_set_type(req, "application/json");
     // Send JSON response
@@ -114,19 +103,7 @@ esp_err_t get_data_handler(httpd_req_t *req)
 httpd_uri_t uri_get = {
     .uri = "/",
     .method = HTTP_GET,
-    .handler = get_req_handler,
-    .user_ctx = NULL};
-
-httpd_uri_t uri_on = {
-    .uri = "/led2on",
-    .method = HTTP_GET,
-    .handler = led_on_handler,
-    .user_ctx = NULL};
-
-httpd_uri_t uri_off = {
-    .uri = "/led2off",
-    .method = HTTP_GET,
-    .handler = led_off_handler,
+    .handler = send_web_page,
     .user_ctx = NULL};
 
 httpd_uri_t sensor_data = {
@@ -143,8 +120,6 @@ httpd_handle_t setup_server(void)
     if (httpd_start(&server, &config) == ESP_OK)
     {
         httpd_register_uri_handler(server, &uri_get);
-        httpd_register_uri_handler(server, &uri_on);
-        httpd_register_uri_handler(server, &uri_off);
         httpd_register_uri_handler(server, &sensor_data);
     }
 
@@ -166,6 +141,8 @@ void app_main()
 
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
+    whatsapp_messages_timer = xTimerCreate("message_timer", pdMS_TO_TICKS(delay_between_messages), pdFALSE, 0, whatsapp_messaging);
+
     init_wifi();
 
     while (!check_wifi_established())
@@ -174,11 +151,6 @@ void app_main()
     }
 
     client = mqttclient();
-
-    gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
-
-    ESP_LOGI(TAG, "LED Control SPIFFS Web Server is running ... ...\n");
     initi_web_page_buffer();
     setup_server();
-    send_whatsapp_message();
 }

@@ -36,6 +36,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
 
+        recieve_data.should_message_user = false;
+
         char topic[64];
         sprintf(topic,"%.*s",event->topic_len, event->topic);
         printf("TOPIC =%s \r \n ", topic);
@@ -51,6 +53,11 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         if(strcmp(topic,CONFIG_EXAMPLE_MQTT_TOPIC_SECOND) == 0){
             strcpy(recieve_data.motion_sensor,data);
         }
+
+        if(strtof(recieve_data.motion_sensor,NULL) >= 492.5 || strtof(recieve_data.sound_sensor,NULL) >= 492.5){
+            recieve_data.should_message_user = true;
+        }
+
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");

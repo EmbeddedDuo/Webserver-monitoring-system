@@ -1,9 +1,10 @@
 #ifndef __MQTT_SUBSCRIBE_H__
 #define __MQTT_SUBSCRIBE_H__
 
-#include "esp_event.h"
+#include <esp_event.h>
 #include <esp_log.h>
 #include <mqtt_client.h>
+#include <stdbool.h>
 
 /**
  * @brief struct for saving the sensor values
@@ -11,6 +12,7 @@
 typedef struct sensor_values_t{
     char sound_sensor[8]; //stores sound_sensor value
     char motion_sensor[8]; //stores motion sensor value
+    bool should_message_user;
 }sensor_values;
 
 /**
