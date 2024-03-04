@@ -19,6 +19,7 @@
 
 #define INDEX_HTML_PATH "/spiffs/index.html"
 #define CAN_SEND_WHATSAPP BIT0
+#define BUZZER_GPIO 18
 
 static const char *TAG = "SPIFFS";
 
@@ -140,13 +141,22 @@ void get_sensor_data_task(void *pvParameters)
     }
 }
 
-void send_whatsapp_message_task(void *pvParameters)
+void notification_task(void *pvParameters)
 {
+    gpio_reset_pin(BUZZER_GPIO);
+    gpio_set_direction(BUZZER_GPIO, GPIO_MODE_OUTPUT);
+    gpio_set_level(BUZZER_GPIO,0);
 
     while (1)
     {
         xEventGroupWaitBits(eventgroup, CAN_SEND_WHATSAPP, pdTRUE, pdFALSE, portMAX_DELAY);
+        
+        gpio_set_level(BUZZER_GPIO, 1);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        gpio_set_level(BUZZER_GPIO,0);
+
         send_whatsapp_message();
+
         vTaskDelay(pdMS_TO_TICKS(20000));
     }
 }
@@ -181,7 +191,7 @@ void app_main()
 
     xTaskCreate(get_sensor_data_task, "get_sensor_data_task", configMINIMAL_STACK_SIZE * 5, NULL, tskIDLE_PRIORITY, NULL);
 
-    xTaskCreate(send_whatsapp_message_task, "send_whatsapp_message_task", configMINIMAL_STACK_SIZE * 5, NULL, tskIDLE_PRIORITY, NULL);
+    xTaskCreate(notification_task, "notification_task", configMINIMAL_STACK_SIZE * 5, NULL, tskIDLE_PRIORITY, NULL);
 
     initi_web_page_buffer();
     setup_server();
