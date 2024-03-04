@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include <freertos/queue.h>
 #include "driver/gpio.h"
 #include "freertos/task.h"
 #include <sys/stat.h>
@@ -10,28 +12,23 @@
 #include <esp_log.h>
 #include <esp_http_server.h>
 #include "esp_spiffs.h"
-#include <freertos/timers.h>
 
 #include "wifi.h"
 #include "mqtt_subscribe.h"
 #include "whatsapp_messaging_http.h"
 
 #define INDEX_HTML_PATH "/spiffs/index.html"
+#define CAN_SEND_WHATSAPP BIT0
 
 static const char *TAG = "SPIFFS";
-TimerHandle_t whatsapp_messages_timer = NULL;
-static const TickType_t delay_between_messages = CONFIG_MESSAGE_DELAY;
+
+EventGroupHandle_t eventgroup;
+
+QueueHandle_t sensor_data_queue;
 
 esp_mqtt_client_handle_t client;
 
-bool allowed_to_send_whatsapp_messages = true;
-
 char index_html[4096];
-
-void whatsapp_messaging(TimerHandle_t pxTimer)
-{
-    allowed_to_send_whatsapp_messages = true;
-}
 
 static void initi_web_page_buffer(void)
 {
@@ -78,23 +75,19 @@ esp_err_t send_web_page(httpd_req_t *req)
 
 esp_err_t get_data_handler(httpd_req_t *req)
 {
-    sensor_values recieve_data = get_sensor_data();
-
-    // Prepare JSON response
+    sensor_values recieve_data;
     char buffer[100];
-    snprintf(buffer, sizeof(buffer), "{\"sound_sensor\": %s, \"motion_sensor\": %s}", recieve_data.sound_sensor, recieve_data.motion_sensor);
-    ESP_LOGI("MQTT", "Daten sollen gesendet werden: %s", recieve_data.should_message_user ? "true" : "false");
-    
-    if (allowed_to_send_whatsapp_messages && recieve_data.should_message_user)
+
+    if (xQueuePeek(sensor_data_queue, &recieve_data, 0) == pdTRUE)
     {
-        send_whatsapp_message();
-        xTimerStart(whatsapp_messages_timer, 0);
-        allowed_to_send_whatsapp_messages = false;
+        snprintf(buffer, sizeof(buffer), "{\"sound_sensor\": %s, \"motion_sensor\": %s}", recieve_data.sound_sensor, recieve_data.motion_sensor);
+    }
+    else
+    {
+        snprintf(buffer, sizeof(buffer), "{\"sound_sensor\": couldnt recieve data, \"motion_sensor\": couldnt recieve data}");
     }
 
-    // Set response type as JSON
     httpd_resp_set_type(req, "application/json");
-    // Send JSON response
     httpd_resp_send(req, buffer, strlen(buffer));
 
     return ESP_OK;
@@ -126,6 +119,38 @@ httpd_handle_t setup_server(void)
     return server;
 }
 
+void get_sensor_data_task(void *pvParameters)
+{
+    while (1)
+    {
+        sensor_values recieve_data = get_sensor_data();
+
+        xQueueOverwrite(sensor_data_queue, &recieve_data);
+
+        if (strtof(recieve_data.motion_sensor, NULL) >= 492.5 || strtof(recieve_data.sound_sensor, NULL) >= 492.5)
+        {
+            xEventGroupSetBits(eventgroup, CAN_SEND_WHATSAPP);
+        }
+        else if (strtof(recieve_data.motion_sensor, NULL) <= 200 || strtof(recieve_data.sound_sensor, NULL) <= 80)
+        {
+            xEventGroupClearBits(eventgroup, CAN_SEND_WHATSAPP);
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
+}
+
+void send_whatsapp_message_task(void *pvParameters)
+{
+
+    while (1)
+    {
+        xEventGroupWaitBits(eventgroup, CAN_SEND_WHATSAPP, pdTRUE, pdFALSE, portMAX_DELAY);
+        send_whatsapp_message();
+        vTaskDelay(pdMS_TO_TICKS(20000));
+    }
+}
+
 void app_main()
 {
 
@@ -141,8 +166,6 @@ void app_main()
 
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    whatsapp_messages_timer = xTimerCreate("message_timer", pdMS_TO_TICKS(delay_between_messages), pdFALSE, 0, whatsapp_messaging);
-
     init_wifi();
 
     while (!check_wifi_established())
@@ -151,6 +174,15 @@ void app_main()
     }
 
     client = mqttclient();
+
+    eventgroup = xEventGroupCreate();
+
+    sensor_data_queue = xQueueCreate(1, sizeof(sensor_values));
+
+    xTaskCreate(get_sensor_data_task, "get_sensor_data_task", configMINIMAL_STACK_SIZE * 5, NULL, tskIDLE_PRIORITY, NULL);
+
+    xTaskCreate(send_whatsapp_message_task, "send_whatsapp_message_task", configMINIMAL_STACK_SIZE * 5, NULL, tskIDLE_PRIORITY, NULL);
+
     initi_web_page_buffer();
     setup_server();
 }

@@ -12,7 +12,6 @@
 typedef struct sensor_values_t{
     char sound_sensor[8]; //stores sound_sensor value
     char motion_sensor[8]; //stores motion sensor value
-    bool should_message_user;
 }sensor_values;
 
 /**
