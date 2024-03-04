@@ -57,26 +57,23 @@
 <head>
     <title>ESP32 WEB SERVER</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css"
-        integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
+        document.addEventListener("DOMContentLoaded", function () {
             function fetchSensorData() {
                 fetch("/sensordata")
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error("Network response was not ok");
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    document.getElementById("soundSensor").textContent = data.sound_sensor;
-                    document.getElementById("motionSensor").textContent = data.motion_sensor;
-                })
-                .catch(error => {
-                    console.error("Error fetching sensor data:", error);
-                });
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error("Network response was not ok");
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        document.getElementById("soundSensor").textContent = data.sound_sensor;
+                        document.getElementById("motionSensor").textContent = data.motion_sensor;
+                    })
+                    .catch(error => {
+                        console.error("Error fetching sensor data:", error);
+                    });
             }
             fetchSensorData();
             setInterval(fetchSensorData, 2000); // Aktualisieren Sie die Daten alle 2 Sekunden
@@ -89,13 +86,9 @@
     <div class="content">
         <div class="card-grid">
             <div class="card">
-                <p><i class="fas fa-lightbulb fa-2x" style="color:#c81919;"></i> <strong>GPIO2</strong></p>
-                <p>GPIO state: <strong> %s </strong></p>
-                <p>
-                    <a href="/led2on"><button class="button">ON</button></a>
-                    <a href="/led2off"><button class="button button2">OFF</button></a>
-                </p>
                 <p>Current Sound Value: <span id="soundSensor"></span></p>
+            </div>
+            <div class="card">
                 <p>Current Motion Value: <span id="motionSensor"></span></p>
             </div>
         </div>

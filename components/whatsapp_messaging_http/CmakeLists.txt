@@ -1,0 +1,3 @@
+idf_component_register(SRCS "whatsapp_messaging_http.c"
+                        INCLUDE_DIRS .
+                        REQUIRES esp_http_client url_encoding)

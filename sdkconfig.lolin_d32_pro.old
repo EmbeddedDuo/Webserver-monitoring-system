@@ -339,6 +339,12 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
+# Monitoring Project Configuration
+#
+CONFIG_MESSAGE_DELAY=20000
+# end of Monitoring Project Configuration
+
+#
 # Compiler options
 #
 CONFIG_COMPILER_OPTIMIZATION_DEFAULT=y
@@ -1592,7 +1598,8 @@ CONFIG_WIFI_PROV_STA_ALL_CHANNEL_SCAN=y
 # Mqtt Configurations
 #
 CONFIG_EXAMPLE_MQTT_Broker="mqtt://193.174.24.220:1883"
-CONFIG_EXAMPLE_MQTT_TOPIC="monitoring-system/sound_sensor"
+CONFIG_EXAMPLE_MQTT_TOPIC_FIRST="monitoring-system/sound_sensor"
+CONFIG_EXAMPLE_MQTT_TOPIC_SECOND="monitoring-system/motion_sensor"
 # end of Mqtt Configurations
 
 #

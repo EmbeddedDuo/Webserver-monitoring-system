@@ -1,0 +1,10 @@
+menu "Monitoring Project Configuration"
+    
+    config MESSAGE_DELAY
+    int "Delay between sending whatsapp messages"
+    range 5000 180000
+    default 20000
+    help
+        delay between whatsapp messages, from 5000ms to 180000ms
+
+endmenu

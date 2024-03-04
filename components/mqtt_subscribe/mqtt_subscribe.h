@@ -1,9 +1,10 @@
 #ifndef __MQTT_SUBSCRIBE_H__
 #define __MQTT_SUBSCRIBE_H__
 
-#include "esp_event.h"
+#include <esp_event.h>
 #include <esp_log.h>
 #include <mqtt_client.h>
+#include <stdbool.h>
 
 /**
  * @brief struct for saving the sensor values
