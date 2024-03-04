@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h> //Requires by memset
+#include <string.h>
+#include <stdbool.h>
 #include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+#include <freertos/queue.h>
 #include "driver/gpio.h"
 #include "freertos/task.h"
 #include <sys/stat.h>
@@ -12,16 +15,20 @@
 
 #include "wifi.h"
 #include "mqtt_subscribe.h"
-
-#define LED_PIN 5
-
-static const char *TAG = "SPIFFS"; // TAG for debug
-int led_state = 1;
-esp_mqtt_client_handle_t client;
+#include "whatsapp_messaging_http.h"
 
 #define INDEX_HTML_PATH "/spiffs/index.html"
+#define CAN_SEND_WHATSAPP BIT0
+
+static const char *TAG = "SPIFFS";
+
+EventGroupHandle_t eventgroup;
+
+QueueHandle_t sensor_data_queue;
+
+esp_mqtt_client_handle_t client;
+
 char index_html[4096];
-char response_data[4096];
 
 static void initi_web_page_buffer(void)
 {
@@ -46,7 +53,6 @@ static void initi_web_page_buffer(void)
     memset((void *)index_html, 0, sizeof(index_html));
     struct stat st;
 
-    /**/
     if (stat(INDEX_HTML_PATH, &st))
     {
         ESP_LOGE(TAG, "index.html not found");
@@ -63,48 +69,25 @@ static void initi_web_page_buffer(void)
 
 esp_err_t send_web_page(httpd_req_t *req)
 {
-    int response;
-    if (led_state)
-    {
-        sprintf(response_data, index_html, "On");
-    }
-    else
-    {
-        sprintf(response_data, index_html, "Off");
-    }
-    response = httpd_resp_send(req, response_data, HTTPD_RESP_USE_STRLEN);
+    esp_err_t response = httpd_resp_send(req, index_html, HTTPD_RESP_USE_STRLEN);
     return response;
-}
-esp_err_t get_req_handler(httpd_req_t *req)
-{
-    return send_web_page(req);
-}
-
-esp_err_t led_on_handler(httpd_req_t *req)
-{
-    gpio_set_level(LED_PIN, 0);
-    led_state = 1;
-    return send_web_page(req);
-}
-
-esp_err_t led_off_handler(httpd_req_t *req)
-{
-    gpio_set_level(LED_PIN, 1);
-    led_state = 0;
-    return send_web_page(req);
 }
 
 esp_err_t get_data_handler(httpd_req_t *req)
 {
-    sensor_values recieve_data = get_sensor_data();
-
-    // Prepare JSON response
+    sensor_values recieve_data;
     char buffer[100];
-    snprintf(buffer, sizeof(buffer), "{\"sound_sensor\": %s, \"motion_sensor\": %s}", recieve_data.sound_sensor, recieve_data.motion_sensor);
-    
-    // Set response type as JSON
+
+    if (xQueuePeek(sensor_data_queue, &recieve_data, 0) == pdTRUE)
+    {
+        snprintf(buffer, sizeof(buffer), "{\"sound_sensor\": %s, \"motion_sensor\": %s}", recieve_data.sound_sensor, recieve_data.motion_sensor);
+    }
+    else
+    {
+        snprintf(buffer, sizeof(buffer), "{\"sound_sensor\": couldnt recieve data, \"motion_sensor\": couldnt recieve data}");
+    }
+
     httpd_resp_set_type(req, "application/json");
-    // Send JSON response
     httpd_resp_send(req, buffer, strlen(buffer));
 
     return ESP_OK;
@@ -113,19 +96,7 @@ esp_err_t get_data_handler(httpd_req_t *req)
 httpd_uri_t uri_get = {
     .uri = "/",
     .method = HTTP_GET,
-    .handler = get_req_handler,
-    .user_ctx = NULL};
-
-httpd_uri_t uri_on = {
-    .uri = "/led2on",
-    .method = HTTP_GET,
-    .handler = led_on_handler,
-    .user_ctx = NULL};
-
-httpd_uri_t uri_off = {
-    .uri = "/led2off",
-    .method = HTTP_GET,
-    .handler = led_off_handler,
+    .handler = send_web_page,
     .user_ctx = NULL};
 
 httpd_uri_t sensor_data = {
@@ -142,12 +113,42 @@ httpd_handle_t setup_server(void)
     if (httpd_start(&server, &config) == ESP_OK)
     {
         httpd_register_uri_handler(server, &uri_get);
-        httpd_register_uri_handler(server, &uri_on);
-        httpd_register_uri_handler(server, &uri_off);
         httpd_register_uri_handler(server, &sensor_data);
     }
 
     return server;
+}
+
+void get_sensor_data_task(void *pvParameters)
+{
+    while (1)
+    {
+        sensor_values recieve_data = get_sensor_data();
+
+        xQueueOverwrite(sensor_data_queue, &recieve_data);
+
+        if (strtof(recieve_data.motion_sensor, NULL) >= 492.5 || strtof(recieve_data.sound_sensor, NULL) >= 492.5)
+        {
+            xEventGroupSetBits(eventgroup, CAN_SEND_WHATSAPP);
+        }
+        else if (strtof(recieve_data.motion_sensor, NULL) <= 200 || strtof(recieve_data.sound_sensor, NULL) <= 80)
+        {
+            xEventGroupClearBits(eventgroup, CAN_SEND_WHATSAPP);
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
+}
+
+void send_whatsapp_message_task(void *pvParameters)
+{
+
+    while (1)
+    {
+        xEventGroupWaitBits(eventgroup, CAN_SEND_WHATSAPP, pdTRUE, pdFALSE, portMAX_DELAY);
+        send_whatsapp_message();
+        vTaskDelay(pdMS_TO_TICKS(20000));
+    }
 }
 
 void app_main()
@@ -174,9 +175,14 @@ void app_main()
 
     client = mqttclient();
 
-    gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
+    eventgroup = xEventGroupCreate();
 
-    ESP_LOGI(TAG, "LED Control SPIFFS Web Server is running ... ...\n");
+    sensor_data_queue = xQueueCreate(1, sizeof(sensor_values));
+
+    xTaskCreate(get_sensor_data_task, "get_sensor_data_task", configMINIMAL_STACK_SIZE * 5, NULL, tskIDLE_PRIORITY, NULL);
+
+    xTaskCreate(send_whatsapp_message_task, "send_whatsapp_message_task", configMINIMAL_STACK_SIZE * 5, NULL, tskIDLE_PRIORITY, NULL);
+
     initi_web_page_buffer();
     setup_server();
 }

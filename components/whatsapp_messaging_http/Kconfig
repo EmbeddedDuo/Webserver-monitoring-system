@@ -1,0 +1,13 @@
+menu "Whatsapp Messaging Configurations"
+    config API_KEY
+        string "your api key for callmeBot"
+        default ""
+
+    config WHATSAPP_NUM
+        string "your whatsapp number"
+        default ""
+
+    config WHATSAPP_MESSAGE
+        string "the message you want to send to your phonrn number"
+        default ""
+endmenu
