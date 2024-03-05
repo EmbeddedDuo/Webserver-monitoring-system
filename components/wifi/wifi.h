@@ -6,8 +6,6 @@
 #include "stdio.h"
 #include "esp_netif.h"
 
-extern bool wifi_established;
-
 /**
  * @brief function for initialising wifi
  * 
