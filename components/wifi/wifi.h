@@ -12,12 +12,4 @@
  */
 void init_wifi();
 
-/**
- * @brief function for checking if wifi established
- * @return 
- *    - true
- *    - false
-*/
-bool check_wifi_established();
-
 #endif

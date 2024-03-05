@@ -178,11 +178,6 @@ void app_main()
 
     init_wifi();
 
-    while (!check_wifi_established())
-    {
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-
     client = mqttclient();
 
     eventgroup = xEventGroupCreate();
