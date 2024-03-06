@@ -16,6 +16,7 @@
 #include "wifi.h"
 #include "mqtt_subscribe.h"
 #include "whatsapp_messaging_http.h"
+#include "buzzer.h"
 
 #define INDEX_HTML_PATH "/spiffs/index.html"
 #define CAN_SEND_WHATSAPP BIT0
