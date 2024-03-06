@@ -1604,6 +1604,14 @@ CONFIG_EXAMPLE_MQTT_TOPIC_SECOND="monitoring-system/motion_sensor"
 # end of Mqtt Configurations
 
 #
+# Whatsapp Messaging Configurations
+#
+CONFIG_API_KEY=""
+CONFIG_WHATSAPP_NUM=""
+CONFIG_WHATSAPP_MESSAGE=""
+# end of Whatsapp Messaging Configurations
+
+#
 # Wifi Configurations
 #
 CONFIG_EXAMPLE_WIFI_SSID="Mi Phone"
