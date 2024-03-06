@@ -7,8 +7,9 @@
 #include <mqtt_client.h>
 #include <stdbool.h>
 
-#define MQTT_CONNECTED BIT0
-#define MQTT_DATA_AVAILABLE BIT1
+#define MQTT_SOUND_DATA_AVAILABLE BIT0
+#define MQTT_MOTION_DATA_AVAILABLE BIT1
+
 
 extern EventGroupHandle_t mqtteventgroup;
 

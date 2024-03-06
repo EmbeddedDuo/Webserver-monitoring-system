@@ -123,8 +123,9 @@ void get_sensor_data_task(void *pvParameters)
 {
     while (1)
     {
-        xEventGroupWaitBits(mqtteventgroup, MQTT_DATA_AVAILABLE, pdTRUE, pdFALSE, portMAX_DELAY);
+        xEventGroupWaitBits(mqtteventgroup, MQTT_SOUND_DATA_AVAILABLE | MQTT_MOTION_DATA_AVAILABLE, pdTRUE, pdTRUE, portMAX_DELAY);
         sensor_values recieve_data = get_sensor_data();
+        ESP_LOGI("TEST", "TEST");
 
         xQueueOverwrite(sensor_data_queue, &recieve_data);
 
@@ -181,4 +182,6 @@ void app_main()
 
     initi_web_page_buffer();
     setup_server();
+    
+    vTaskDelete(NULL);
 }
