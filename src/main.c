@@ -124,6 +124,7 @@ void get_sensor_data_task(void *pvParameters)
 {
     while (1)
     {
+        xEventGroupWaitBits(mqtteventgroup, MQTT_DATA_AVAILABLE, pdTRUE, pdFALSE, portMAX_DELAY);
         sensor_values recieve_data = get_sensor_data();
 
         xQueueOverwrite(sensor_data_queue, &recieve_data);
@@ -137,7 +138,7 @@ void get_sensor_data_task(void *pvParameters)
             xEventGroupClearBits(eventgroup, CAN_SEND_WHATSAPP);
         }
 
-        vTaskDelay(pdMS_TO_TICKS(2000));
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
