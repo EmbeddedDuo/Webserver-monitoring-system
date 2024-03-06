@@ -3,8 +3,14 @@
 
 #include <esp_event.h>
 #include <esp_log.h>
+#include "freertos/event_groups.h"
 #include <mqtt_client.h>
 #include <stdbool.h>
+
+#define MQTT_CONNECTED BIT0
+#define MQTT_DATA_AVAILABLE BIT1
+
+extern EventGroupHandle_t mqtteventgroup;
 
 /**
  * @brief struct for saving the sensor values
