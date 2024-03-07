@@ -145,19 +145,12 @@ void get_sensor_data_task(void *pvParameters)
 
 void notification_task(void *pvParameters)
 {
-    gpio_reset_pin(BUZZER_GPIO);
-    gpio_set_direction(BUZZER_GPIO, GPIO_MODE_OUTPUT);
-    gpio_set_level(BUZZER_GPIO,0);
-
     while (1)
     {
         xEventGroupWaitBits(eventgroup, CAN_SEND_WHATSAPP, pdTRUE, pdFALSE, portMAX_DELAY);
-        
-        gpio_set_level(BUZZER_GPIO, 1);
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        gpio_set_level(BUZZER_GPIO,0);
 
         send_whatsapp_message();
+        alarm_buzzer();
 
         vTaskDelay(pdMS_TO_TICKS(20000));
     }
@@ -177,6 +170,8 @@ void app_main()
     ESP_ERROR_CHECK(ret); // Check for general initialization errors
 
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+    init_buzzer();
 
     init_wifi();
 
