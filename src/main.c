@@ -145,13 +145,12 @@ void get_sensor_data_task(void *pvParameters)
 
 void notification_task(void *pvParameters)
 {
+    void (*function)(void) = (void (*)(void))pvParameters;
+
     while (1)
     {
         xEventGroupWaitBits(eventgroup, CAN_SEND_WHATSAPP, pdTRUE, pdFALSE, portMAX_DELAY);
-
-        send_whatsapp_message();
-        alarm_buzzer();
-
+        function();
         vTaskDelay(pdMS_TO_TICKS(20000));
     }
 }
@@ -183,7 +182,8 @@ void app_main()
 
     xTaskCreate(get_sensor_data_task, "get_sensor_data_task", configMINIMAL_STACK_SIZE * 5, NULL, tskIDLE_PRIORITY, NULL);
 
-    xTaskCreate(notification_task, "notification_task", configMINIMAL_STACK_SIZE * 5, NULL, tskIDLE_PRIORITY, NULL);
+    xTaskCreate(notification_task, "whatsapp_task", configMINIMAL_STACK_SIZE * 5, (void*) send_whatsapp_message, tskIDLE_PRIORITY, NULL);
+    xTaskCreate(notification_task, "buzzer_task", configMINIMAL_STACK_SIZE * 5, (void*) alarm_buzzer, tskIDLE_PRIORITY, NULL);
 
     initi_web_page_buffer();
     setup_server();
