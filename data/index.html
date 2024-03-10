@@ -8,28 +8,6 @@
         text-align: center;
     }
 
-    h1 {
-        color: #070812;
-        padding: 2vh;
-    }
-
-    .button {
-        display: inline-block;
-        background-color: #b30000;
-        border: none;
-        border-radius: 4px;
-        color: white;
-        padding: 16px 40px;
-        text-decoration: none;
-        font-size: 30px;
-        margin: 2px;
-        cursor: pointer;
-    }
-
-    .button2 {
-        background-color: #364cf4;
-    }
-
     .content {
         padding: 50px;
     }
@@ -51,6 +29,16 @@
         font-size: 1.2rem;
         font-weight: bold;
         color: #034078
+    }
+
+    .webcam{
+        margin-top: 5%;
+    }
+
+    .frame{
+        width: 800px;
+        height: 600px;
+        border: none;
     }
 </style>
 
@@ -91,9 +79,9 @@
             <div class="card">
                 <p>Current Motion Value: <span id="motionSensor"></span></p>
             </div>
-            <div class="webcam">
-                <iframe src="url" title="CameraLiveStream"></iframe>
-            </div>
+        </div>
+        <div class="webcam">
+            <iframe class="frame" src="http://192.168.0.212" title="CameraLiveStream"></iframe>
         </div>
     </div>
 </body>
