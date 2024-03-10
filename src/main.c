@@ -20,7 +20,6 @@
 
 #define INDEX_HTML_PATH "/spiffs/index.html"
 #define CAN_SEND_NOTIFICATION BIT0
-#define BUZZER_GPIO 18
 
 static const char *TAG = "SPIFFS";
 
@@ -29,9 +28,6 @@ EventGroupHandle_t eventgroup;
 QueueHandle_t sensor_data_queue;
 
 esp_mqtt_client_handle_t client;
-
-TickType_t whatsapp_message_delay = CONFIG_MESSAGE_DELAY_WHATSAPP;
-TickType_t buzzer_alarm_delay = CONFIG_MESSAGE_DELAY_BUZZER;
 
 char index_html[4096];
 
@@ -175,10 +171,10 @@ void notification_task(void *pvParameters)
 
         if (strcmp(pcTaskGetName(NULL), "whatsapp_task") == 0)
         {
-            function_delay = whatsapp_message_delay;
+            function_delay = CONFIG_MESSAGE_DELAY_WHATSAPP;
         }
         if (strcmp(pcTaskGetName(NULL), "buzzer_task") == 0){
-            function_delay = buzzer_alarm_delay;
+            function_delay = CONFIG_MESSAGE_DELAY_BUZZER;
         }
 
         vTaskDelay(pdMS_TO_TICKS(function_delay));
