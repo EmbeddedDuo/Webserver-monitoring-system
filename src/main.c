@@ -1,3 +1,9 @@
+/*
+* Sources:
+* Spiffs: https://esp32tutorials.com/esp32-esp-idf-spiffs-web-server/
+* 
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,6 +37,7 @@ esp_mqtt_client_handle_t client;
 
 char index_html[4096];
 
+// function to load index.html in /data into index_html buffer using SPIFFS Filesystem
 static void initi_web_page_buffer(void)
 {
     esp_vfs_spiffs_conf_t conf = {
@@ -39,6 +46,7 @@ static void initi_web_page_buffer(void)
         .max_files = 5,
         .format_if_mount_failed = true};
 
+    // initialize with settings above and mount SPIFFS
     ESP_ERROR_CHECK(esp_vfs_spiffs_register(&conf));
 
     size_t total = 0, used = 0;
@@ -51,15 +59,19 @@ static void initi_web_page_buffer(void)
         ESP_LOGE(TAG, "Couldnt read partition info");
     }
 
-    memset((void *)index_html, 0, sizeof(index_html));
-    struct stat st;
 
+    // set all values in index_html buffer to 0
+    memset((void *)index_html, 0, sizeof(index_html));
+
+    // check if index.html exists
+    struct stat st;
     if (stat(INDEX_HTML_PATH, &st))
     {
         ESP_LOGE(TAG, "index.html not found");
         return;
     }
 
+    //open index.html and read it to index_html buffer
     FILE *fp = fopen(INDEX_HTML_PATH, "r");
     if (fread(index_html, st.st_size, 1, fp) == 0)
     {
@@ -68,12 +80,14 @@ static void initi_web_page_buffer(void)
     fclose(fp);
 }
 
+// uri handler for getting root page
 esp_err_t send_web_page(httpd_req_t *req)
 {
     esp_err_t response = httpd_resp_send(req, index_html, HTTPD_RESP_USE_STRLEN);
     return response;
 }
 
+// uri handler for getting sensor data 
 esp_err_t get_data_handler(httpd_req_t *req)
 {
     sensor_values recieve_data;
@@ -94,6 +108,7 @@ esp_err_t get_data_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+// uri handler for getting ip_address of Camera_Webserver
 esp_err_t get_ipadress_handler(httpd_req_t *req)
 {
     Ip_Address ip_adress = get_ip();
@@ -119,8 +134,10 @@ httpd_uri_t get_ipadress = {
     .handler = get_ipadress_handler,
     .user_ctx = NULL};
 
+//setup http server
 httpd_handle_t setup_server(void)
-{
+{   
+    // wait for camera webserver ip to establish connection directly
     xEventGroupWaitBits(mqtteventgroup, MQTT_IPADRESS_AVAILABLE, pdFALSE, pdTRUE, portMAX_DELAY);
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -136,10 +153,12 @@ httpd_handle_t setup_server(void)
     return server;
 }
 
+//task to get the sensor values from Mqtt
 void get_sensor_data_task(void *pvParameters)
 {
     sensor_values recieve_data; 
 
+    //pointer for endpoint character for strtol convertion if not number
     char *motion_endpoint;
     char *sound_endpoint;
 
@@ -147,14 +166,20 @@ void get_sensor_data_task(void *pvParameters)
     uint16_t sound_value;
 
     while (1)
-    {
+    {   
+        //waits for Sound and Motion Data to be recieved
         xEventGroupWaitBits(mqtteventgroup, MQTT_SOUND_DATA_AVAILABLE | MQTT_MOTION_DATA_AVAILABLE, pdTRUE, pdTRUE, portMAX_DELAY);
         recieve_data = get_sensor_data();
+
+        //Overwrite Data in Queue that is used by get_sensor_data uri handler
         xQueueOverwrite(sensor_data_queue, &recieve_data);
 
+        //Convertion from String to int
         motion_value = (uint16_t)strtol(recieve_data.motion_sensor, &motion_endpoint, 10);
         sound_value = (uint16_t)strtol(recieve_data.sound_sensor, &sound_endpoint, 10);
 
+
+        // threshold value for sending notifications
         if (motion_value >= 492 || sound_value >= 150)
         {
             xEventGroupSetBits(eventgroup, CAN_SEND_NOTIFICATION);
@@ -168,17 +193,22 @@ void get_sensor_data_task(void *pvParameters)
     }
 }
 
+//tasks for buzzer and whatsapp notification
 void notification_task(void *pvParameters)
 {
+
+    //callback function that is transmitted in task parameters, is set in Main 
     void (*function)(void) = (void (*)(void))pvParameters;
 
     while (1)
-    {
+    {   
+        //wait that both tasks can send notifications 
         xEventGroupWaitBits(eventgroup, CAN_SEND_NOTIFICATION, pdFALSE, pdFALSE, portMAX_DELAY);
         function();
 
         TickType_t function_delay = 0;
 
+        //set delay for specific task that is configured in Kconfig
         if (strcmp(pcTaskGetName(NULL), "whatsapp_task") == 0)
         {
             function_delay = CONFIG_MESSAGE_DELAY_WHATSAPP;
@@ -194,8 +224,7 @@ void notification_task(void *pvParameters)
 
 void app_main()
 {
-
-    esp_err_t ret = nvs_flash_init(); // Initialize NVS Flash memory for the WIFI credentials
+    esp_err_t ret = nvs_flash_init();
 
     // Check for NVS initialization errors
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
@@ -203,18 +232,21 @@ void app_main()
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
-    ESP_ERROR_CHECK(ret); // Check for general initialization errors
+    ESP_ERROR_CHECK(ret);
 
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
+    // initializing of buzzer and wifi
     init_buzzer();
 
     init_wifi();
 
+    // initializing of mqtt
     client = mqttclient();
 
     eventgroup = xEventGroupCreate();
 
+    //create queue that delivers data from function that gets sensor data from mqtt to uri handler to display values
     sensor_data_queue = xQueueCreate(1, sizeof(sensor_values));
 
     xTaskCreate(get_sensor_data_task, "get_sensor_data_task", configMINIMAL_STACK_SIZE * 5, NULL, tskIDLE_PRIORITY, NULL);

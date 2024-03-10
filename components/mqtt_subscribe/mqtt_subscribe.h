@@ -11,6 +11,7 @@
 #define MQTT_MOTION_DATA_AVAILABLE BIT1
 #define MQTT_IPADRESS_AVAILABLE BIT2
 
+// mqtt event group handler for sound data, motion data and ipadress
 extern EventGroupHandle_t mqtteventgroup;
 typedef struct Ip{
     char ip [64];
@@ -18,10 +19,13 @@ typedef struct Ip{
 
 /**
  * @brief struct for saving the sensor values
+ * 
+ *   - sound_sensor: value for sound_sensor
+ *   - motion_sensor: value for sound_sensor
  */
 typedef struct sensor_values_t{
-    char sound_sensor[16]; //stores sound_sensor value
-    char motion_sensor[16]; //stores motion sensor value
+    char sound_sensor[16];
+    char motion_sensor[16];
 }sensor_values;
 
 /**
