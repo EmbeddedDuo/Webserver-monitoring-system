@@ -98,6 +98,13 @@ esp_err_t get_data_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+esp_err_t get_ipadress_handler(httpd_req_t *req)
+{
+    IP_Adress ip = get_ip();
+    httpd_resp_send(req, ip, strlen(ip));
+    return ESP_OK;
+}
+
 httpd_uri_t uri_get = {
     .uri = "/",
     .method = HTTP_GET,
@@ -110,6 +117,12 @@ httpd_uri_t sensor_data = {
     .handler = get_data_handler,
     .user_ctx = NULL};
 
+httpd_uri_t get_ipadress = {
+    .uri = "/ipadress",
+    .method = HTTP_GET,
+    .handler = get_ipadress_handler,
+    .user_ctx = NULL};
+
 httpd_handle_t setup_server(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -119,6 +132,7 @@ httpd_handle_t setup_server(void)
     {
         httpd_register_uri_handler(server, &uri_get);
         httpd_register_uri_handler(server, &sensor_data);
+        httpd_register_uri_handler(server, &get_ipadress);
     }
 
     return server;

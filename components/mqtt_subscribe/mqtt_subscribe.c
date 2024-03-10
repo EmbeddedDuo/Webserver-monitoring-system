@@ -6,6 +6,8 @@ EventGroupHandle_t mqtteventgroup = NULL;
 
 sensor_values recieve_data;
 
+IP_Adress ip;
+
 static void log_error_if_nonzero(const char *message, int error_code)
 {
     if (error_code != 0)
@@ -25,6 +27,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         esp_mqtt_client_subscribe(client, CONFIG_EXAMPLE_MQTT_TOPIC_FIRST, 0);
         esp_mqtt_client_subscribe(client, CONFIG_EXAMPLE_MQTT_TOPIC_SECOND, 0);
+        esp_mqtt_client_subscribe(client, "monitoring-system/IP-Adresse", 0);
         break;
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
@@ -54,6 +57,11 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         if(strcmp(topic,CONFIG_EXAMPLE_MQTT_TOPIC_SECOND) == 0){
             strcpy(recieve_data.motion_sensor,data);
             xEventGroupSetBits(mqtteventgroup, MQTT_MOTION_DATA_AVAILABLE);
+        }
+
+        if(strcmp(topic,"monitoring-system/IP-Adresse") == 0){
+            ip = data;
+            xEventGroupSetBits(mqtteventgroup, MQTT_IPADRESS_AVAILABLE);
         }
 
         
@@ -87,11 +95,15 @@ esp_mqtt_client_handle_t mqttclient()
     ESP_ERROR_CHECK(esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL));
     ESP_ERROR_CHECK(esp_mqtt_client_start(client));
 
-    xEventGroupWaitBits(mqtteventgroup, MQTT_SOUND_DATA_AVAILABLE | MQTT_MOTION_DATA_AVAILABLE, pdFALSE, pdTRUE, portMAX_DELAY);
+    xEventGroupWaitBits(mqtteventgroup, MQTT_SOUND_DATA_AVAILABLE | MQTT_MOTION_DATA_AVAILABLE | MQTT_IPADRESS_AVAILABLE, pdFALSE, pdTRUE, portMAX_DELAY);
 
     return client;
 }
 
 sensor_values get_sensor_data(){
     return recieve_data;
+}
+
+IP_Adress get_ip(){
+    return ip;
 }

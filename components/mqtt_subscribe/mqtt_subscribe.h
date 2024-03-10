@@ -9,9 +9,10 @@
 
 #define MQTT_SOUND_DATA_AVAILABLE BIT0
 #define MQTT_MOTION_DATA_AVAILABLE BIT1
-
+#define MQTT_IPADRESS_AVAILABLE BIT2
 
 extern EventGroupHandle_t mqtteventgroup;
+typedef char* IP_Adress;
 
 /**
  * @brief struct for saving the sensor values
@@ -30,7 +31,15 @@ esp_mqtt_client_handle_t mqttclient();
 /**
  * @brief function for recieving mqtt sensor data
  * 
+ * @return sensor_values
  */
 sensor_values get_sensor_data();
+
+/**
+ * @brief Get the ip object
+ * 
+ * @return IP_Adress 
+ */
+IP_Adress get_ip();
 
 #endif
