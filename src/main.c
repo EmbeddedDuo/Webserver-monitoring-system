@@ -20,7 +20,6 @@
 
 #define INDEX_HTML_PATH "/spiffs/index.html"
 #define CAN_SEND_NOTIFICATION BIT0
-#define BUZZER_GPIO 18
 
 static const char *TAG = "SPIFFS";
 
@@ -29,9 +28,6 @@ EventGroupHandle_t eventgroup;
 QueueHandle_t sensor_data_queue;
 
 esp_mqtt_client_handle_t client;
-
-TickType_t whatsapp_message_delay = CONFIG_MESSAGE_DELAY_WHATSAPP;
-TickType_t buzzer_alarm_delay = CONFIG_MESSAGE_DELAY_BUZZER;
 
 char index_html[4096];
 
@@ -98,6 +94,13 @@ esp_err_t get_data_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+esp_err_t get_ipadress_handler(httpd_req_t *req)
+{   
+    Ip_Address ip_adress = get_ip();
+    httpd_resp_send(req, ip_adress.ip, strlen(ip_adress.ip)); 
+    return ESP_OK;
+}
+
 httpd_uri_t uri_get = {
     .uri = "/",
     .method = HTTP_GET,
@@ -110,8 +113,16 @@ httpd_uri_t sensor_data = {
     .handler = get_data_handler,
     .user_ctx = NULL};
 
+httpd_uri_t get_ipadress = {
+    .uri = "/ipaddress",
+    .method = HTTP_GET,
+    .handler = get_ipadress_handler,
+    .user_ctx = NULL};
+
 httpd_handle_t setup_server(void)
 {
+    xEventGroupWaitBits(mqtteventgroup, MQTT_IPADRESS_AVAILABLE, pdFALSE, pdTRUE, portMAX_DELAY);
+
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     httpd_handle_t server = NULL;
 
@@ -119,6 +130,7 @@ httpd_handle_t setup_server(void)
     {
         httpd_register_uri_handler(server, &uri_get);
         httpd_register_uri_handler(server, &sensor_data);
+        httpd_register_uri_handler(server, &get_ipadress);
     }
 
     return server;
@@ -159,10 +171,10 @@ void notification_task(void *pvParameters)
 
         if (strcmp(pcTaskGetName(NULL), "whatsapp_task") == 0)
         {
-            function_delay = whatsapp_message_delay;
+            function_delay = CONFIG_MESSAGE_DELAY_WHATSAPP;
         }
         if (strcmp(pcTaskGetName(NULL), "buzzer_task") == 0){
-            function_delay = buzzer_alarm_delay;
+            function_delay = CONFIG_MESSAGE_DELAY_BUZZER;
         }
 
         vTaskDelay(pdMS_TO_TICKS(function_delay));
