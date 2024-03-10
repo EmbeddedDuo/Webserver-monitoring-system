@@ -95,9 +95,9 @@ esp_err_t get_data_handler(httpd_req_t *req)
 }
 
 esp_err_t get_ipadress_handler(httpd_req_t *req)
-{   
+{
     Ip_Address ip_adress = get_ip();
-    httpd_resp_send(req, ip_adress.ip, strlen(ip_adress.ip)); 
+    httpd_resp_send(req, ip_adress.ip, strlen(ip_adress.ip));
     return ESP_OK;
 }
 
@@ -138,18 +138,28 @@ httpd_handle_t setup_server(void)
 
 void get_sensor_data_task(void *pvParameters)
 {
+    sensor_values recieve_data; 
+
+    char *motion_endpoint;
+    char *sound_endpoint;
+
+    uint16_t motion_value;
+    uint16_t sound_value;
+
     while (1)
     {
         xEventGroupWaitBits(mqtteventgroup, MQTT_SOUND_DATA_AVAILABLE | MQTT_MOTION_DATA_AVAILABLE, pdTRUE, pdTRUE, portMAX_DELAY);
-        sensor_values recieve_data = get_sensor_data();
-
+        recieve_data = get_sensor_data();
         xQueueOverwrite(sensor_data_queue, &recieve_data);
 
-        if (strtof(recieve_data.motion_sensor, NULL) >= 492.5 || strtof(recieve_data.sound_sensor, NULL) >= 492.5)
+        motion_value = (uint16_t)strtol(recieve_data.motion_sensor, &motion_endpoint, 10);
+        sound_value = (uint16_t)strtol(recieve_data.sound_sensor, &sound_endpoint, 10);
+
+        if (motion_value >= 492 || sound_value >= 150)
         {
             xEventGroupSetBits(eventgroup, CAN_SEND_NOTIFICATION);
         }
-        else if (strtof(recieve_data.motion_sensor, NULL) <= 200 || strtof(recieve_data.sound_sensor, NULL) <= 80)
+        else if (motion_value <= 200 && sound_value <= 80)
         {
             xEventGroupClearBits(eventgroup, CAN_SEND_NOTIFICATION);
         }
@@ -173,7 +183,8 @@ void notification_task(void *pvParameters)
         {
             function_delay = CONFIG_MESSAGE_DELAY_WHATSAPP;
         }
-        if (strcmp(pcTaskGetName(NULL), "buzzer_task") == 0){
+        if (strcmp(pcTaskGetName(NULL), "buzzer_task") == 0)
+        {
             function_delay = CONFIG_MESSAGE_DELAY_BUZZER;
         }
 
