@@ -100,7 +100,7 @@ esp_err_t get_data_handler(httpd_req_t *req)
 
 esp_err_t get_ipadress_handler(httpd_req_t *req)
 {   
-    Ip_Adress ip_adress = get_ip();
+    Ip_Address ip_adress = get_ip();
     httpd_resp_send(req, ip_adress.ip, strlen(ip_adress.ip)); 
     return ESP_OK;
 }
@@ -118,7 +118,7 @@ httpd_uri_t sensor_data = {
     .user_ctx = NULL};
 
 httpd_uri_t get_ipadress = {
-    .uri = "/ipadress",
+    .uri = "/ipaddress",
     .method = HTTP_GET,
     .handler = get_ipadress_handler,
     .user_ctx = NULL};

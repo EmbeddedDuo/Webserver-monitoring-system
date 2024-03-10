@@ -14,7 +14,7 @@
 extern EventGroupHandle_t mqtteventgroup;
 typedef struct Ip{
     char ip [64];
-}Ip_Adress;
+}Ip_Address;
 
 /**
  * @brief struct for saving the sensor values
@@ -42,6 +42,6 @@ sensor_values get_sensor_data();
  * 
  * @return char 
  */
-Ip_Adress get_ip();
+Ip_Address get_ip();
 
 #endif

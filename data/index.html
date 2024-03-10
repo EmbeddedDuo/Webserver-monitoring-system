@@ -49,7 +49,7 @@
         document.addEventListener("DOMContentLoaded", function () {
 
             function fetchIpAdress() {
-                fetch("/ipadress")
+                fetch("/ipaddress")
                     .then(response => {
                         if (!response.ok) {
                             throw new Error("Network response was not ok");
@@ -58,10 +58,10 @@
                     })
                     .then(data => {
                         const iframe = document.getElementById("iframe")
-                        iframe.setAttribute("src",data);
+                        iframe.setAttribute("src", "http://" + data);
                     })
                     .catch(error => {
-                        console.error("Error fetching ipadress:", error);
+                        console.error("Error fetching ipaddress:", error);
                         fetchIpAdress();
                     });
             }
