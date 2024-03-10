@@ -31,11 +31,11 @@
         color: #034078
     }
 
-    .webcam{
+    .webcam {
         margin-top: 5%;
     }
 
-    #iframe{
+    #iframe {
         width: 800px;
         height: 600px;
         border: none;
@@ -58,10 +58,10 @@
                     })
                     .then(data => {
                         const iframe = document.getElementById("iframe")
-                        iframe.setAttribute("src", "http://" + data);
+                        iframe.setAttribute("src",data);
                     })
                     .catch(error => {
-                        console.error("Error fetching sensor data:", error);
+                        console.error("Error fetching ipadress:", error);
                         fetchIpAdress();
                     });
             }

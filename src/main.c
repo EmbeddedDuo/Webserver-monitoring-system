@@ -100,10 +100,8 @@ esp_err_t get_data_handler(httpd_req_t *req)
 
 esp_err_t get_ipadress_handler(httpd_req_t *req)
 {   
-    xEventGroupWaitBits(mqtteventgroup, MQTT_IPADRESS_AVAILABLE, pdFALSE, pdTRUE, pdMS_TO_TICKS(60000));
-
-    IP_Adress ip = get_ip();
-    httpd_resp_send(req, ip, strlen(ip));
+    Ip_Adress ip_adress = get_ip();
+    httpd_resp_send(req, ip_adress.ip, strlen(ip_adress.ip)); 
     return ESP_OK;
 }
 
@@ -127,6 +125,8 @@ httpd_uri_t get_ipadress = {
 
 httpd_handle_t setup_server(void)
 {
+    xEventGroupWaitBits(mqtteventgroup, MQTT_IPADRESS_AVAILABLE, pdFALSE, pdTRUE, portMAX_DELAY);
+
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     httpd_handle_t server = NULL;
 

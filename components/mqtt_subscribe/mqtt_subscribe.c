@@ -6,7 +6,7 @@ EventGroupHandle_t mqtteventgroup = NULL;
 
 sensor_values recieve_data;
 
-IP_Adress ip;
+Ip_Adress ip_adress;
 
 static void log_error_if_nonzero(const char *message, int error_code)
 {
@@ -60,11 +60,11 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         }
 
         if(strcmp(topic,"monitoring-system/IP-Adresse") == 0){
-            ip = data;
+            strcpy(ip_adress.ip, data);
             xEventGroupSetBits(mqtteventgroup, MQTT_IPADRESS_AVAILABLE);
+            esp_mqtt_client_unsubscribe(client, "monitoring-system/IP-Adresse");
         }
 
-        
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -100,10 +100,11 @@ esp_mqtt_client_handle_t mqttclient()
     return client;
 }
 
-sensor_values get_sensor_data(){
+sensor_values get_sensor_data()
+{
     return recieve_data;
 }
 
-IP_Adress get_ip(){
-    return ip;
+Ip_Adress get_ip(){
+    return ip_adress;
 }

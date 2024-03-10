@@ -12,7 +12,9 @@
 #define MQTT_IPADRESS_AVAILABLE BIT2
 
 extern EventGroupHandle_t mqtteventgroup;
-typedef char* IP_Adress;
+typedef struct Ip{
+    char ip [64];
+}Ip_Adress;
 
 /**
  * @brief struct for saving the sensor values
@@ -38,8 +40,8 @@ sensor_values get_sensor_data();
 /**
  * @brief Get the ip object
  * 
- * @return IP_Adress 
+ * @return char 
  */
-IP_Adress get_ip();
+Ip_Adress get_ip();
 
 #endif
