@@ -29,7 +29,8 @@
 
 static const char *TAG = "SPIFFS";
 
-EventGroupHandle_t eventgroup;
+// event group for sending notification
+EventGroupHandle_t notification_eventgroup;
 
 QueueHandle_t sensor_data_queue;
 
@@ -137,8 +138,8 @@ httpd_uri_t get_ipadress = {
 //setup http server
 httpd_handle_t setup_server(void)
 {   
-    // wait for camera webserver ip to establish connection directly
-    xEventGroupWaitBits(mqtteventgroup, MQTT_IPADRESS_AVAILABLE, pdFALSE, pdTRUE, portMAX_DELAY);
+    // wait for camera webserver ip before building http server
+    xEventGroupWaitBits(mqtt_eventgroup, MQTT_IPADRESS_AVAILABLE, pdFALSE, pdTRUE, portMAX_DELAY);
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     httpd_handle_t server = NULL;
@@ -168,7 +169,7 @@ void get_sensor_data_task(void *pvParameters)
     while (1)
     {   
         //waits for Sound and Motion Data to be recieved
-        xEventGroupWaitBits(mqtteventgroup, MQTT_SOUND_DATA_AVAILABLE | MQTT_MOTION_DATA_AVAILABLE, pdTRUE, pdTRUE, portMAX_DELAY);
+        xEventGroupWaitBits(mqtt_eventgroup, MQTT_SOUND_DATA_AVAILABLE | MQTT_MOTION_DATA_AVAILABLE, pdTRUE, pdTRUE, portMAX_DELAY);
         recieve_data = get_sensor_data();
 
         //Overwrite Data in Queue that is used by get_sensor_data uri handler
@@ -182,11 +183,11 @@ void get_sensor_data_task(void *pvParameters)
         // threshold value for sending notifications
         if (motion_value >= 492 || sound_value >= 150)
         {
-            xEventGroupSetBits(eventgroup, CAN_SEND_NOTIFICATION);
+            xEventGroupSetBits(notification_eventgroup, CAN_SEND_NOTIFICATION);
         }
         else if (motion_value <= 200 && sound_value <= 80)
         {
-            xEventGroupClearBits(eventgroup, CAN_SEND_NOTIFICATION);
+            xEventGroupClearBits(notification_eventgroup, CAN_SEND_NOTIFICATION);
         }
 
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -203,7 +204,7 @@ void notification_task(void *pvParameters)
     while (1)
     {   
         //wait that both tasks can send notifications 
-        xEventGroupWaitBits(eventgroup, CAN_SEND_NOTIFICATION, pdFALSE, pdFALSE, portMAX_DELAY);
+        xEventGroupWaitBits(notification_eventgroup, CAN_SEND_NOTIFICATION, pdFALSE, pdFALSE, portMAX_DELAY);
         function();
 
         TickType_t function_delay = 0;
@@ -244,7 +245,7 @@ void app_main()
     // initializing of mqtt
     client = mqttclient();
 
-    eventgroup = xEventGroupCreate();
+    notification_eventgroup = xEventGroupCreate();
 
     //create queue that delivers data from function that gets sensor data from mqtt to uri handler to display values
     sensor_data_queue = xQueueCreate(1, sizeof(sensor_values));

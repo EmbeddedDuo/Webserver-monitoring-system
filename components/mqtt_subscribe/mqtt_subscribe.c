@@ -2,7 +2,7 @@
 
 static const char *TAG = "MQTT";
 
-EventGroupHandle_t mqtteventgroup = NULL;
+EventGroupHandle_t mqtt_eventgroup = NULL;
 
 sensor_values recieve_data;
 
@@ -41,27 +41,31 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
         
+        // extract topic and save it in variable
         char topic[64];
         sprintf(topic,"%.*s",event->topic_len, event->topic);
-        printf("TOPIC =%s \r \n ", topic);
+        ESP_LOGI(TAG, "TOPIC =%s \r \n ", topic);
 
+        // extract data and save it in variable
         char data[64];
         sprintf(data,"%.*s",event->data_len, event->data);
-        printf("DATA =%s \r \n ", data);
+        ESP_LOGI(TAG, "DATA =%s \r \n ", data);
+
+        //save data it in the specific struct member of the specific topic and set Bit that data is received
 
         if(strcmp(topic,CONFIG_EXAMPLE_MQTT_TOPIC_FIRST) == 0){
             strcpy(recieve_data.sound_sensor,data);
-            xEventGroupSetBits(mqtteventgroup, MQTT_SOUND_DATA_AVAILABLE);
+            xEventGroupSetBits(mqtt_eventgroup, MQTT_SOUND_DATA_AVAILABLE);
         }
 
         if(strcmp(topic,CONFIG_EXAMPLE_MQTT_TOPIC_SECOND) == 0){
             strcpy(recieve_data.motion_sensor,data);
-            xEventGroupSetBits(mqtteventgroup, MQTT_MOTION_DATA_AVAILABLE);
+            xEventGroupSetBits(mqtt_eventgroup, MQTT_MOTION_DATA_AVAILABLE);
         }
 
         if(strcmp(topic,"monitoring-system/ip-address") == 0){
             strcpy(ip_adress.ip, data);
-            xEventGroupSetBits(mqtteventgroup, MQTT_IPADRESS_AVAILABLE);
+            xEventGroupSetBits(mqtt_eventgroup, MQTT_IPADRESS_AVAILABLE);
         }
 
         break;
@@ -84,7 +88,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 esp_mqtt_client_handle_t mqttclient()
 {
 
-    mqtteventgroup = xEventGroupCreate();
+    mqtt_eventgroup = xEventGroupCreate();
 
     esp_mqtt_client_config_t mqtt_cfg = {
         .broker.address.uri = CONFIG_EXAMPLE_MQTT_Broker};
@@ -94,7 +98,10 @@ esp_mqtt_client_handle_t mqttclient()
     ESP_ERROR_CHECK(esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL));
     ESP_ERROR_CHECK(esp_mqtt_client_start(client));
 
-    xEventGroupWaitBits(mqtteventgroup, MQTT_SOUND_DATA_AVAILABLE | MQTT_MOTION_DATA_AVAILABLE, pdFALSE, pdTRUE, portMAX_DELAY);
+    /*waits that sensor data is received before continuing programm
+    * not waiting for ip to differentiate receiving sensor data/ sending notifications and building http server
+    */
+    xEventGroupWaitBits(mqtt_eventgroup, MQTT_SOUND_DATA_AVAILABLE | MQTT_MOTION_DATA_AVAILABLE, pdFALSE, pdTRUE, portMAX_DELAY);
 
     return client;
 }

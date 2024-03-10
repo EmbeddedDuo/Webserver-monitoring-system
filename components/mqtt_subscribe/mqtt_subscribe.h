@@ -1,3 +1,9 @@
+/*
+* sources: https://github.com/espressif/esp-idf/blob/v5.0/examples/protocols/mqtt/tcp/main/app_main.c
+* and course files
+*/
+
+
 #ifndef __MQTT_SUBSCRIBE_H__
 #define __MQTT_SUBSCRIBE_H__
 
@@ -11,8 +17,8 @@
 #define MQTT_MOTION_DATA_AVAILABLE BIT1
 #define MQTT_IPADRESS_AVAILABLE BIT2
 
-// mqtt event group handler for sound data, motion data and ipadress
-extern EventGroupHandle_t mqtteventgroup;
+// mqtt event group handler for receiving sound data, motion data and ipadress
+extern EventGroupHandle_t mqtt_eventgroup;
 typedef struct Ip{
     char ip [64];
 }Ip_Address;
@@ -30,21 +36,24 @@ typedef struct sensor_values_t{
 
 /**
  * @brief function for initialising mqttclient
- * 
+ * @return
+ *     - handler for mqtt
  */
 esp_mqtt_client_handle_t mqttclient();
 
 /**
  * @brief function for recieving mqtt sensor data
  * 
- * @return sensor_values
+ * @return 
+ *    - sensor_values
  */
 sensor_values get_sensor_data();
 
 /**
  * @brief Get the ip object
  * 
- * @return Ip_Address struct 
+ * @return 
+ *   - Ip_Address struct 
  */
 Ip_Address get_ip();
 
