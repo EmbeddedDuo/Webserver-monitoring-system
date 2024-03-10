@@ -2,6 +2,8 @@
 
 static const char *TAG = "MQTT";
 
+EventGroupHandle_t mqtteventgroup = NULL;
+
 sensor_values recieve_data;
 
 static void log_error_if_nonzero(const char *message, int error_code)
@@ -46,11 +48,15 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
         if(strcmp(topic,CONFIG_EXAMPLE_MQTT_TOPIC_FIRST) == 0){
             strcpy(recieve_data.sound_sensor,data);
+            xEventGroupSetBits(mqtteventgroup, MQTT_SOUND_DATA_AVAILABLE);
         }
 
         if(strcmp(topic,CONFIG_EXAMPLE_MQTT_TOPIC_SECOND) == 0){
             strcpy(recieve_data.motion_sensor,data);
+            xEventGroupSetBits(mqtteventgroup, MQTT_MOTION_DATA_AVAILABLE);
         }
+
+        
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -71,6 +77,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 esp_mqtt_client_handle_t mqttclient()
 {
 
+    mqtteventgroup = xEventGroupCreate();
+
     esp_mqtt_client_config_t mqtt_cfg = {
         .broker.address.uri = CONFIG_EXAMPLE_MQTT_Broker};
 
@@ -78,6 +86,8 @@ esp_mqtt_client_handle_t mqttclient()
 
     ESP_ERROR_CHECK(esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL));
     ESP_ERROR_CHECK(esp_mqtt_client_start(client));
+
+    xEventGroupWaitBits(mqtteventgroup, MQTT_SOUND_DATA_AVAILABLE | MQTT_MOTION_DATA_AVAILABLE, pdFALSE, pdTRUE, portMAX_DELAY);
 
     return client;
 }

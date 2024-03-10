@@ -3,15 +3,22 @@
 
 #include <esp_event.h>
 #include <esp_log.h>
+#include "freertos/event_groups.h"
 #include <mqtt_client.h>
 #include <stdbool.h>
+
+#define MQTT_SOUND_DATA_AVAILABLE BIT0
+#define MQTT_MOTION_DATA_AVAILABLE BIT1
+
+
+extern EventGroupHandle_t mqtteventgroup;
 
 /**
  * @brief struct for saving the sensor values
  */
 typedef struct sensor_values_t{
-    char sound_sensor[8]; //stores sound_sensor value
-    char motion_sensor[8]; //stores motion sensor value
+    char sound_sensor[16]; //stores sound_sensor value
+    char motion_sensor[16]; //stores motion sensor value
 }sensor_values;
 
 /**
