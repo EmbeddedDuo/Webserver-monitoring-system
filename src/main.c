@@ -16,9 +16,11 @@
 #include "wifi.h"
 #include "mqtt_subscribe.h"
 #include "whatsapp_messaging_http.h"
+#include "buzzer.h"
 
 #define INDEX_HTML_PATH "/spiffs/index.html"
-#define CAN_SEND_WHATSAPP BIT0
+#define CAN_SEND_NOTIFICATION BIT0
+#define BUZZER_GPIO 18
 
 static const char *TAG = "SPIFFS";
 
@@ -27,6 +29,9 @@ EventGroupHandle_t eventgroup;
 QueueHandle_t sensor_data_queue;
 
 esp_mqtt_client_handle_t client;
+
+TickType_t whatsapp_message_delay = CONFIG_MESSAGE_DELAY_WHATSAPP;
+TickType_t buzzer_alarm_delay = CONFIG_MESSAGE_DELAY_BUZZER;
 
 char index_html[4096];
 
@@ -125,31 +130,42 @@ void get_sensor_data_task(void *pvParameters)
     {
         xEventGroupWaitBits(mqtteventgroup, MQTT_SOUND_DATA_AVAILABLE | MQTT_MOTION_DATA_AVAILABLE, pdTRUE, pdTRUE, portMAX_DELAY);
         sensor_values recieve_data = get_sensor_data();
-        ESP_LOGI("TEST", "TEST");
 
         xQueueOverwrite(sensor_data_queue, &recieve_data);
 
         if (strtof(recieve_data.motion_sensor, NULL) >= 492.5 || strtof(recieve_data.sound_sensor, NULL) >= 492.5)
         {
-            xEventGroupSetBits(eventgroup, CAN_SEND_WHATSAPP);
+            xEventGroupSetBits(eventgroup, CAN_SEND_NOTIFICATION);
         }
         else if (strtof(recieve_data.motion_sensor, NULL) <= 200 || strtof(recieve_data.sound_sensor, NULL) <= 80)
         {
-            xEventGroupClearBits(eventgroup, CAN_SEND_WHATSAPP);
+            xEventGroupClearBits(eventgroup, CAN_SEND_NOTIFICATION);
         }
 
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
-void send_whatsapp_message_task(void *pvParameters)
+void notification_task(void *pvParameters)
 {
+    void (*function)(void) = (void (*)(void))pvParameters;
 
     while (1)
     {
-        xEventGroupWaitBits(eventgroup, CAN_SEND_WHATSAPP, pdTRUE, pdFALSE, portMAX_DELAY);
-        send_whatsapp_message();
-        vTaskDelay(pdMS_TO_TICKS(20000));
+        xEventGroupWaitBits(eventgroup, CAN_SEND_NOTIFICATION, pdFALSE, pdFALSE, portMAX_DELAY);
+        function();
+
+        TickType_t function_delay = 0;
+
+        if (strcmp(pcTaskGetName(NULL), "whatsapp_task") == 0)
+        {
+            function_delay = whatsapp_message_delay;
+        }
+        if (strcmp(pcTaskGetName(NULL), "buzzer_task") == 0){
+            function_delay = buzzer_alarm_delay;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(function_delay));
     }
 }
 
@@ -168,6 +184,8 @@ void app_main()
 
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
+    init_buzzer();
+
     init_wifi();
 
     client = mqttclient();
@@ -178,10 +196,11 @@ void app_main()
 
     xTaskCreate(get_sensor_data_task, "get_sensor_data_task", configMINIMAL_STACK_SIZE * 5, NULL, tskIDLE_PRIORITY, NULL);
 
-    xTaskCreate(send_whatsapp_message_task, "send_whatsapp_message_task", configMINIMAL_STACK_SIZE * 5, NULL, tskIDLE_PRIORITY, NULL);
+    xTaskCreate(notification_task, "whatsapp_task", configMINIMAL_STACK_SIZE * 5, (void *)send_whatsapp_message, tskIDLE_PRIORITY, NULL);
+    xTaskCreate(notification_task, "buzzer_task", configMINIMAL_STACK_SIZE * 5, (void *)alarm_buzzer, tskIDLE_PRIORITY, NULL);
 
     initi_web_page_buffer();
     setup_server();
-    
+
     vTaskDelete(NULL);
 }

@@ -17,8 +17,8 @@ extern EventGroupHandle_t mqtteventgroup;
  * @brief struct for saving the sensor values
  */
 typedef struct sensor_values_t{
-    char sound_sensor[8]; //stores sound_sensor value
-    char motion_sensor[8]; //stores motion sensor value
+    char sound_sensor[16]; //stores sound_sensor value
+    char motion_sensor[16]; //stores motion sensor value
 }sensor_values;
 
 /**
