@@ -19,7 +19,10 @@ spiffs_create_partition_image(spiffs data)
 2. Open **ESP-TLS** and check **Allow potentially insecure options** and **Skip server certificate verification by default**
 
 ## How to use the project
-We used Platformio and ESP-IDF Framework for our Project. Make sure that the Kconfig values are set. <br>
+We used Platformio and ESP-IDF Framework for our Project. The Project ist split into two projects. This is the **Webserver Part** with Notifications. <br>
+The **other parts** includes the used motion and loudness sensor with a camera. <br>
+**It can be found here: https://github.com/EmbeddedDuo/monitoring-system** <br>
+Make sure that the Kconfig values are set. <br>
 You can find them under the menuconfig and **Component config** <br>
 All custom Kconfigs are listed at the bottom:
 1. Mqtt Configurations
