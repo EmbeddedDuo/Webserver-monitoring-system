@@ -95,7 +95,7 @@ esp_mqtt_client_handle_t mqttclient()
     ESP_ERROR_CHECK(esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL));
     ESP_ERROR_CHECK(esp_mqtt_client_start(client));
 
-    xEventGroupWaitBits(mqtteventgroup, MQTT_SOUND_DATA_AVAILABLE | MQTT_MOTION_DATA_AVAILABLE | MQTT_IPADRESS_AVAILABLE, pdFALSE, pdTRUE, portMAX_DELAY);
+    xEventGroupWaitBits(mqtteventgroup, MQTT_SOUND_DATA_AVAILABLE | MQTT_MOTION_DATA_AVAILABLE, pdFALSE, pdTRUE, portMAX_DELAY);
 
     return client;
 }
