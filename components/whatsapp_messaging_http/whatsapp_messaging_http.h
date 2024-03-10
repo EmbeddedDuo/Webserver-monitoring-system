@@ -1,3 +1,7 @@
+/*
+* sources: https://esp32tutorials.com/esp32-esp-idf-send-messages-whatsapp/
+*/
+
 #ifndef __WHATSAPP_MESSAGING_HTTP__
 #define __WHATSAPP_MESSAGING_HTTP__
 
