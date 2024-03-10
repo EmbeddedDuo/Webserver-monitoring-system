@@ -40,7 +40,7 @@ sensor_values get_sensor_data();
 /**
  * @brief Get the ip object
  * 
- * @return char 
+ * @return Ip_Address struct 
  */
 Ip_Address get_ip();
 
