@@ -1,3 +1,7 @@
+/*
+* sources: https://github.com/espressif/esp-idf/blob/master/examples/wifi/getting_started/station/main/station_example_main.c
+*/
+
 #ifndef __WIFI_H__
 #define __WIFI_H__
 
